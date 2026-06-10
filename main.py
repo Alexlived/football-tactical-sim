@@ -1,20 +1,12 @@
 import random
-list_of_matchups = {'CB': 'ST',
-                    'ST': 'CB',
-                    'CDM': 'CAM',
-                    'CAM': 'CDM',
-                    'LB': 'RW',
-                    'RW': 'LB',
-                    'RB': 'LW',
-                    'LW': 'RB',
-                    'CM': 'CM',}
+
 position_groups = {
     "attacking": ["RW", "LW", "ST", "CAM"],
     "defensive": ["CB", "CDM", "LB", "RB"],
     "Mid": ["CM","CDM","CAM"]
 }
 class Player:
-    def __init__(self,n,p,pac,dfn,atk,pas,sht,gk):
+    def __init__(self,n,p,pac,dfn,atk,pas,sht,gk,phy,team):
         self.name = n
         self.position = p
 
@@ -24,7 +16,10 @@ class Player:
         self.atk = atk
         self.pas = pas
         self.sht = sht
+        self.phy = phy
         self.gk = gk
+
+        self.team = team
         pass
 
         self.stamina = 100
@@ -49,45 +44,43 @@ class Team:
         self.state = state
         self.profile = profile
 
-    def get_random_attacker_in_postion(self): # get a random attacker to start a duel
-        players = [player for player in self.players if player.position in position_groups["attacking"]]
-        return random.choice(players)
+    def decay(self):
+        for player in self.players:
+            player.decay(random.randint(3, 10)) # Decay each player's stamina by a random amount of points per duel
     
-    def calc_modifier(self, stat_name):
+    def calc_modifier(self, stat_name, player):
         profiles = ["Attacking", "Defensive", "Balanced"]
         if self.profile == "Attacking":
-            if stat_name in ["atk", "sht"]:
+            if stat_name in ["atk", "sht", "phy","pac"]:
                 atk_amount = 1.4
+                pass
             elif stat_name in ["pas", "pac"]:
                 mid_amount = 1.2
-            if stat_name in ["dfn", "gk"]:
+            if stat_name in ["dfn", "pac", "phy"]:
                 def_amount = 0.6
         elif self.profile == "Defensive":
-            if stat_name in ["dfn", "gk"]:
+            if stat_name in ["dfn", "pac","phy"]:
                 def_amount = 1.4
             if stat_name in ["pas", "pac"]:
                 mid_amount = 1.0
-            if stat_name in ["atk", "sht"]:
+            if stat_name in ["atk","pac","phy", "sht"]:
                 atk_amount = 0.8
         else: # Balanced
             if stat_name in ["pas", "pac"]:
                 mid_amount = 1.2
-            if stat_name in ["atk", "sht"]:
+            if stat_name in ["atk", "sht","phy", "pac"]:
                 atk_amount = 1.2
-            if stat_name in ["dfn", "gk"]:
+            if stat_name in ["dfn", "pac","phy"]:
                 def_amount = 1.0
-
-        return atk_amount, mid_amount, def_amount
+        
+       
+        
 
 class Part_of_Pitch:   
     def __init__(self,zone,possesion,team_1,team_2):
         self.zone = zone
-        self.possesion = possesion
         self.team_1 = team_1
         self.team_2 = team_2
-    
-    def update_possession(self, new_possession):
-        self.possesion = new_possession
 
     def update_zone(self, duel_outcome):
         if duel_outcome in self.team_1.players:
@@ -99,17 +92,49 @@ class Part_of_Pitch:
         elif self.zone == -5:
             pass # Team 2 scores
 
-    def get_required_position(self,):
-        if self.zone >= 3:
-            attacker = self.team_1.get_random_attacker_in_postion()
-            return list_of_matchups[attacker.position]
-        elif self.zone <= -3:
-            attacker = self.team_2.get_random_attacker_in_postion()
-            return list_of_matchups[attacker.position]
-        else:
-            return random.choice(position_groups["Mid"])
+def get_players_by_zone(team_1, team_2, zone):
+    # For central zones, we want to select midfielders from both teams
+    if 0 <= zone <= 2:
+        relevant_team_1_players = [player for player in team_1.players if player.position in position_groups["Mid"]]
+        relevant_team_2_players = [player for player in team_2.players if player.position in position_groups["Mid"]]
+    elif -2 <= zone <= 0:
+        relevant_team_1_players = [player for player in team_1.players if player.position in position_groups["Mid"]]
+        relevant_team_2_players = [player for player in team_2.players if player.position in position_groups["Mid"]]
 
-def simulate_duel(attacker, defender, team_attacking, team_defending):
+    # For attacking zones, we want to select attackers from the attacking team and defenders from the defending team
+    elif zone >= 3:
+        relevant_team_1_players = [player for player in team_1.players if player.position in position_groups["attacking"]]
+        relevant_team_2_players = [player for player in team_2.players if player.position in position_groups["defensive"]]
+    else: # zone <= -3
+        relevant_team_1_players = [player for player in team_1.players if player.position in position_groups["defensive"]]
+        relevant_team_2_players = [player for player in team_2.players if player.position in position_groups["attacking"]]
+    return relevant_team_1_players, relevant_team_2_players
+
+def get_random_duelists(team_1, team_2, zone):
+    relevant_team_1_players, relevant_team_2_players = get_players_by_zone(team_1, team_2, zone) # Using the function
+    attacker = random.choice(relevant_team_1_players)
+    defender = random.choice(relevant_team_2_players)
+    return attacker, defender
+
+def team_profile_modifier(player):
+    if player.team.profile == "Attacking":
+        
+        
+
+def simulate_duel(attacker, defender, team_attacking, team_defending,zone):
+    if 0 <= zone <= 2:
+        attacker_stat = attacker.get_effective_stat("pas") + attacker.get_effective_stat("atk") # Midfield duels rely on passing and intelligence
+        defender_stat = defender.get_effective_stat("pas") + defender.get_effective_stat("dfn") 
+    elif -2 <= zone <= 0:
+        attacker_stat = attacker.get_effective_stat("pas") + attacker.get_effective_stat("dfn") 
+        defender_stat = defender.get_effective_stat("pas") + defender.get_effective_stat("atk")
+
     
-            
+    elif zone >= 3:
+        attacker_stat = attacker.get_effective_stat("atk") + attacker.get_effective_stat("pac") + attacker.get_effective_stat("phy") 
+        defender_stat = defender.get_effective_stat("dfn") + defender.get_effective_stat("pac") + defender.get_effective_stat("phy") 
+    elif zone <= -3:
+        attacker_stat = attacker.get_effective_stat("dfn") + attacker.get_effective_stat("pac") + attacker.get_effective_stat("phy") 
+        defender_stat = defender.get_effective_stat("atk") + defender.get_effective_stat("pac") + defender.get_effective_stat("phy")
 
+    # Apply team profile modifiers
