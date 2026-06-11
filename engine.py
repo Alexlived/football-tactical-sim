@@ -52,7 +52,7 @@ class Team:
         
 
 class Part_of_Pitch:   
-    def __init__(self,zone,possesion,team_1,team_2):
+    def __init__(self,zone,team_1,team_2):
         self.zone = zone
         self.team_1 = team_1
         self.team_2 = team_2

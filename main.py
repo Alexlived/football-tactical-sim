@@ -1,6 +1,20 @@
 import time
 from engine import Player, Team, Part_of_Pitch, team_profile_modifier, get_random_duelists, simulate_duel, simulate_shot
-
+def kick_off(team1,team2, score,last_scorer,pitch):
+    print('Kick Off!')
+    print(f"{team1.name}:{score[team1.name]} vs {team2.name}:{score[team2.name]}")
+    setattr(pitch, 'zone', 0) # Reset the pitch zone to the center at kick-off
+    if last_scorer == team1.name:
+        setattr(team1, 'state', 'defending')
+        setattr(team2, 'state', 'attacking')
+        print(f"{team2.name} starts with the ball.")
+    else:
+        setattr(team1, 'state', 'attacking')
+        setattr(team2, 'state', 'defending')
+        print(f"{team1.name} starts with the ball.")
+        
+        
+    
 def main():
     # Real Madrid Player Array
     rm_players = [
@@ -44,7 +58,7 @@ def main():
         team_profile_modifier(player, barcelona.profile)
 
     # 5. Connect Teams to the Global Pitch Simulation Manager
-    pitch = Part_of_Pitch(zone=0, possesion=real_madrid, team_1=real_madrid, team_2=barcelona)
+    pitch = Part_of_Pitch(zone=0,team_1=real_madrid, team_2=barcelona)
 
     # Score Trackers
     score = {real_madrid.name: 0, barcelona.name: 0}
